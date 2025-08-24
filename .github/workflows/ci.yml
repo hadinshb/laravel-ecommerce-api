@@ -1,6 +1,6 @@
 # .github/workflows/ci.yml
 
-name: Task Manager CI/CD
+name: Headless E-Commerce CI/CD
 
 on:
   push:

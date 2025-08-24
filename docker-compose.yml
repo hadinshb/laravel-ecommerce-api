@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: taskmanager_app
+    container_name: ecommerce_app
     restart: unless-stopped
     working_dir: /var/www
     env_file:
@@ -12,11 +12,11 @@ services:
       - .:/var/www
       - /var/www/vendor
     networks:
-      - taskmanager
+      - ecommerce
 
   nginx:
     image: nginx:1.25-alpine
-    container_name: taskmanager_nginx
+    container_name: ecommerce_nginx
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8000}:80"
@@ -26,11 +26,11 @@ services:
     depends_on:
       - app
     networks:
-      - taskmanager
+      - ecommerce
 
   mysql:
     image: mysql:8.0
-    container_name: taskmanager_mysql
+    container_name: ecommerce_mysql
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
@@ -42,20 +42,20 @@ services:
     ports:
       - "3307:3306"
     networks:
-      - taskmanager
+      - ecommerce
 
   redis:
     image: redis:7-alpine
-    container_name: taskmanager_redis
+    container_name: ecommerce_redis
     restart: unless-stopped
     networks:
-      - taskmanager
+      - ecommerce
 
   worker:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: taskmanager_worker
+    container_name: ecommerce_worker
     restart: unless-stopped
     command: php artisan queue:work --sleep=3 --tries=3
     env_file:
@@ -64,14 +64,12 @@ services:
       - app
       - redis
     networks:
-      - taskmanager
+      - ecommerce
 
 networks:
-  taskmanager:
+  ecommerce:
     driver: bridge
 
 volumes:
   db_data:
-    driver: local
-  setup_flag:
     driver: local
