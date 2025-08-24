@@ -1,0 +1,58 @@
+# .github/workflows/ci.yml
+
+name: Task Manager CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup and Start Services
+        run: |
+          echo "Setting up .env file..."
+          cp .env.example .env
+          echo "Building service images..."
+          docker compose build
+          echo "Generating application key..."
+          docker compose run --rm --entrypoint="" app php artisan key:generate
+          echo "Starting containers in background..."
+          docker compose up -d
+          echo "Verifying running containers..."
+          docker compose ps
+
+      - name: Run Code Quality Checks
+        run: |
+          echo "Running Pint (Code Style)..."
+          docker compose exec -T app ./vendor/bin/pint --test
+          
+          echo "Running PHPStan (Static Analysis)..."
+          docker compose exec -T app ./vendor/bin/phpstan analyse --memory-limit=1G
+
+
+      - name: Run Pest/PHPUnit tests
+        id: tests
+        run: |
+          docker compose exec -T app php artisan config:clear
+          docker compose exec -T \
+            -e DB_CONNECTION=sqlite \
+            -e DB_DATABASE=:memory: \
+            -e SESSION_DRIVER=array \
+            -e CACHE_STORE=array \
+            app php artisan test
+
+      - name: View Laravel log on failure
+        if: failure() && steps.tests.outcome == 'failure'
+        run: docker compose exec -T app cat storage/logs/laravel.log
+
+      - name: Tear down containers
+        if: always()
+        run: docker compose down
